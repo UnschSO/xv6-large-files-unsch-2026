@@ -1,48 +1,25 @@
-xv6 is a re-implementation of Dennis Ritchie's and Ken Thompson's Unix
-Version 6 (v6).  xv6 loosely follows the structure and style of v6,
-but is implemented for a modern RISC-V multiprocessor using ANSI C.
+# Proyecto Final de Sistemas Operativos: xv6-large-files
 
-ACKNOWLEDGMENTS
+## 📌 Descripción del Proyecto
+Este repositorio contiene la implementación de una extensión funcional para el sistema operativo **xv6-riscv**. El objetivo principal es ampliar la capacidad máxima de los archivos mediante la implementación de **direccionamiento doblemente indirecto** en el sistema de archivos.
 
-xv6 is inspired by John Lions's Commentary on UNIX 6th Edition (Peer
-to Peer Communications; ISBN: 1-57398-013-7; 1st edition (June 14,
-2000)).  See also https://pdos.csail.mit.edu/6.1810/, which provides
-pointers to on-line resources for v6.
+El diseño propuesto modifica la estructura de inodos, pasando de 12 punteros directos a 11 punteros directos, 1 indirecto y 1 doblemente indirecto, lo que permite manejar archivos de mayor tamaño sin alterar el tamaño en disco del inodo.
 
-The following people have made contributions: Russ Cox (context switching,
-locking), Cliff Frey (MP), Xiao Yu (MP), Nickolai Zeldovich, and Austin
-Clements.
+## 👥 Integrantes y Roles
+- **Mauricio Onicham** - Módulo A: Implementación de `bmap()` (Direccionamiento doblemente indirecto).
+- **Quispe Sebastián** - Módulo B: Estructura de inodos y diseño (`fs.h`, `file.h`).
+- **Pinga Marlon** - Módulo C: Liberación de bloques y consistencia (`itrunc()`).
+- **De la Cruz HC** - Módulo D: Pruebas automatizadas, programas de usuario y evaluación.
 
-We are also grateful for the bug reports and patches contributed by
-Abhinavpatel00, Takahiro Aoyagi, Marcelo Arroyo, Hirbod Behnam, Silas
-Boyd-Wickizer, Anton Burtsev, carlclone, Ian Chen, clivezeng, Dan
-Cross, Cody Cutler, Mike CAT, Tej Chajed, Asami Doi,Wenyang Duan,
-echtwerner, eyalz800, Nelson Elhage, Saar Ettinger, Alice Ferrazzi,
-Nathaniel Filardo, flespark, Peter Froehlich, Yakir Goaron, Shivam
-Handa, Matt Harvey, Bryan Henry, jaichenhengjie, Jim Huang, Matúš
-Jókay, John Jolly, Alexander Kapshuk, Anders Kaseorg, kehao95,
-Wolfgang Keller, Jungwoo Kim, Jonathan Kimmitt, Eddie Kohler, Vadim
-Kolontsov, Austin Liew, Bruce Lowekamp, l0stman, Pavan Maddamsetti,
-Imbar Marinescu, Yandong Mao, Matan Shabtay, Hitoshi Mitake, Carmi
-Merimovich, mes900903, Mark Morrissey, mtasm, Joel Nider, Hayato Ohhashi,
-OptimisticSide, papparapa, phosphagos, Harry Porter, Greg Price, Zheng
-qhuo, Quancheng, RayAndrew, Jude Rich, segfault, Ayan Shafqat, Eldar
-Sehayek, Yongming Shen, Fumiya Shigemitsu, snoire, Taojie, Cam Tenny,
-tyfkda, Warren Toomey, Stephen Tu, Alissa Tung, Rafael Ubal, unicornx,
-Amane Uehara, Pablo Ventura, Luc Videau, Xi Wang, WaheedHafez, Keiichi
-Watanabe, Lucas Wolf, Nicolas Wolovick, wxdao, Grant Wu, x653, Andy
-Zhang, Jindong Zhang, Icenowy Zheng, ZhUyU1997, and Zou Chang Wei.
+## ⚙️ Requisitos Previos
+Para compilar y ejecutar este proyecto, necesitas un entorno Linux (o WSL en Windows) con las siguientes herramientas instaladas:
+- `git`
+- `build-essential` (GCC, Make)
+- `gdb-multiarch` (para depuración)
+- `qemu-system-misc` (emulador)
+- Toolchain de RISC-V: `gcc-riscv64-linux-gnu` y `binutils-riscv64-linux-gnu`
 
-ERROR REPORTS
-
-Please send errors and suggestions to Frans Kaashoek and Robert Morris
-(kaashoek,rtm@mit.edu).  The main purpose of xv6 is as a teaching
-operating system for MIT's 6.1810, so we are more interested in
-simplifications and clarifications than new features.
-
-BUILDING AND RUNNING XV6
-
-You will need a RISC-V "newlib" tool chain from
-https://github.com/riscv/riscv-gnu-toolchain, and qemu compiled for
-riscv64-softmmu.  Once they are installed, and in your shell
-search path, you can run "make qemu".
+Instalación rápida en Ubuntu/Debian:
+```bash
+sudo apt-get update
+sudo apt-get install git build-essential gdb-multiarch qemu-system-misc gcc-riscv64-linux-gnu binutils-riscv64-linux-gnu
