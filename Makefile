@@ -133,6 +133,7 @@ mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 UPROGS=\
 	$U/_t2_bmap\
 	$U/_t5_free\
+	$U/_bigfiletest\
 	$U/_cat\
 	$U/_echo\
 	$U/_forktest\
@@ -153,6 +154,8 @@ UPROGS=\
 	$U/_forphan\
 	$U/_dorphan\
 	$U/_sync\
+
+FSSIZE = 20000
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
