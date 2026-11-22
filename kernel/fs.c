@@ -455,6 +455,55 @@ bmap(struct inode *ip, uint bn)
     return addr;
   }
 
+  bn -= NINDIRECT;
+
+  // Modulo A: direccionamiento doblemente indirecto.
+  if (bn < NINDIRECT * NINDIRECT) {
+    uint i = bn / NINDIRECT;
+    uint j = bn % NINDIRECT;
+    uint indirect_addr;
+    struct buf *bp1, *bp2;
+    uint *a1, *a2;
+
+    // Asignar bloque de indices de primer nivel.
+    if ((addr = ip->addrs[NDIRECT + 1]) == 0) {
+      addr = balloc(ip->dev);
+      if (addr == 0)
+        return 0;
+      ip->addrs[NDIRECT + 1] = addr;
+    }
+
+    bp1 = bread(ip->dev, addr);
+    a1 = (uint *)bp1->data;
+
+    // Asignar bloque de indices de segundo nivel.
+    if ((indirect_addr = a1[i]) == 0) {
+      indirect_addr = balloc(ip->dev);
+      if (indirect_addr == 0) {
+        brelse(bp1);
+        return 0;
+      }
+      a1[i] = indirect_addr;
+      log_write(bp1);
+    }
+
+    bp2 = bread(ip->dev, indirect_addr);
+    a2 = (uint *)bp2->data;
+
+    // Asignar el bloque de datos.
+    if ((addr = a2[j]) == 0) {
+      addr = balloc(ip->dev);
+      if (addr != 0) {
+        a2[j] = addr;
+        log_write(bp2);
+      }
+    }
+
+    brelse(bp2);
+    brelse(bp1);
+    return addr;
+  }
+
   panic("bmap: out of range");
 }
 
@@ -484,6 +533,36 @@ itrunc(struct inode *ip)
     brelse(bp);
     bfree(ip->dev, ip->addrs[NDIRECT]);
     ip->addrs[NDIRECT] = 0;
+  }
+
+  // Modulo C: liberacion de bloques doblemente indirectos.
+  if(ip->addrs[NDIRECT + 1]){
+    struct buf *bp1, *bp2;
+    uint *a1, *a2;
+    int i, j;
+
+    bp1 = bread(ip->dev, ip->addrs[NDIRECT + 1]);
+    a1 = (uint*)bp1->data;
+
+    for(i = 0; i < NINDIRECT; i++){
+      if(a1[i]){
+        bp2 = bread(ip->dev, a1[i]);
+        a2 = (uint*)bp2->data;
+
+        for(j = 0; j < NINDIRECT; j++){
+          if(a2[j]){
+            bfree(ip->dev, a2[j]);
+          }
+        }
+
+        brelse(bp2);
+        bfree(ip->dev, a1[i]);
+      }
+    }
+
+    brelse(bp1);
+    bfree(ip->dev, ip->addrs[NDIRECT + 1]);
+    ip->addrs[NDIRECT + 1] = 0;
   }
 
   ip->size = 0;
