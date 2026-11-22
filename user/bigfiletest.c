@@ -3,10 +3,10 @@
 // Ampliacion de capacidad mediante Direccionamiento Doblemente Indirecto
 //
 // Equipo de Trabajo:
-//   - Modulo A: Mauricio Onicham (bmap y asignacion doble indirecta)
-//   - Modulo B: Quispe Sebastian (Estructura de inodos y limites de arquitectura)
-//   - Modulo C: Pinga Marlon (itrunc y liberacion consistente de bloques)
-//   - Modulo D: De la Cruz HC Fredy (Consolidacion, suite de pruebas y evaluacion)
+//   - Modulo A: Mauricio (bmap y asignacion doble indirecta)
+//   - Modulo B: Sebastian (Estructura de inodos y limites de arquitectura)
+//   - Modulo C: Marlon (itrunc y liberacion consistente de bloques)
+//   - Modulo D: Fredy (Consolidacion, suite de pruebas y evaluacion)
 //
 // Matriz Oficial de Pruebas (Guia Maestra del Equipo - Seccion 5):
 //   T1 [Modulo B - Sebastian]         : Verificacion de zona directa (0..10 bloques)
@@ -55,13 +55,13 @@ print_inode_diagram(void)
     printf("  ======================================================================\n\n");
 }
 
-/* ── T1: Modulo B - Quispe Sebastian ───────────────────────────────────────
+/* ── T1: Modulo B ───────────────────────────────────────
    Verifica que la zona directa (NDIRECT = 11 bloques) funcione sin regresiones
    tras la reduccion de 12 a 11 punteros directos. */
 static int
 test_t1_sebastian(void)
 {
-    printf("\n[T1] MODULO B (Quispe Sebastian): Zona Directa (NDIRECT=%d)\n", NDIRECT);
+    printf("\n[T1] MODULO B : Zona Directa (NDIRECT=%d)\n", NDIRECT);
     printf("     Escenario: Escritura y lectura de %d bloques directos...\n", T1_BLOCKS);
     printf("     [Estructura]: Usando unicamente inodo.addrs[0..10]\n");
     unlink(TEST_FILE);
@@ -112,13 +112,13 @@ test_t1_sebastian(void)
     return 1;
 }
 
-/* ── T2: Modulo A - Mauricio Onicham ───────────────────────────────────────
+/* ── T2: Modulo A ───────────────────────────────────────
    Verifica que bmap() asigne y acceda a bloques doblemente indirectos al superar
    el limite simple indirecto (NDIRECT + NINDIRECT = 267 bloques). */
 static int
 test_t2_mauricio(void)
 {
-    printf("\n[T2] MODULO A (Mauricio Onicham): Cruce a Doble Indirecto bmap()\n");
+    printf("\n[T2] MODULO A : Cruce a Doble Indirecto bmap()\n");
     printf("     Escenario: Escritura de %d bloques (supera limite simple de 267)...\n", T2_BLOCKS);
     unlink(TEST_FILE);
 
@@ -184,13 +184,13 @@ test_t2_mauricio(void)
     return 1;
 }
 
-/* ── T3: Modulo D - De la Cruz HC Fredy ─────────────────────────────────────
+/* ── T3: Modulo D ─────────────────────────────────────
    Verifica la creacion y lectura de un archivo grande de 1000 bloques (aprox. 1 MB)
    mostrando en tiempo real como se van abriendo las sucesivas tablas de segundo nivel. */
 static int
 test_t3_fredy_largefile(void)
 {
-    printf("\n[T3] MODULO D (De la Cruz HC): Capacidad Masiva y Mapeo en Tiempo Real (1 MB)\n");
+    printf("\n[T3] MODULO D : Capacidad Masiva y Mapeo en Tiempo Real (1 MB)\n");
     printf("     Escenario: Escritura continua de %d bloques (1000 KB)...\n", T3_BLOCKS);
     unlink(TEST_FILE);
 
@@ -248,12 +248,12 @@ test_t3_fredy_largefile(void)
     return 1;
 }
 
-/* ── T4: Modulo D - De la Cruz HC Fredy ─────────────────────────────────────
+/* ── T4: Modulo D ─────────────────────────────────────
    Verifica integridad matematica estricta byte a byte con patron no lineal determinista. */
 static int
 test_t4_fredy_integrity(void)
 {
-    printf("\n[T4] MODULO D (De la Cruz HC): Integridad de Datos Determinista\n");
+    printf("\n[T4] MODULO D : Integridad de Datos Determinista\n");
     printf("     Escenario: Patron matematico no colisionante ((i * 7 + 13) %% 256)...\n");
     printf("     [Objetivo]: Comprobar que ningun bloque doble indirecto se solapa o corrompe.\n");
     unlink(TEST_FILE);
@@ -307,13 +307,13 @@ test_t4_fredy_integrity(void)
     return 1;
 }
 
-/* ── T5: Modulo C - Pinga Marlon ───────────────────────────────────────────
+/* ── T5: Modulo C ───────────────────────────────────────────
    Verifica que itrunc() libere ambos niveles del arbol doblemente indirecto
    y que los bloques retornen al bitmap siendo reutilizables en ciclos continuos. */
 static int
 test_t5_marlon_itrunc(void)
 {
-    printf("\n[T5] MODULO C (Pinga Marlon): Liberacion Recursiva y Reutilizacion itrunc()\n");
+    printf("\n[T5] MODULO C : Liberacion Recursiva y Reutilizacion itrunc()\n");
     printf("     Escenario: 3 ciclos de crear, verificar y liberar %d bloques c/u...\n", T5_BLOCKS);
     printf("     [Algoritmo]: itrunc() libera Datos L2 -> Subtabla L2 -> Tabla L1 -> Bitmap.\n");
 
@@ -384,13 +384,13 @@ test_t5_marlon_itrunc(void)
     }
 }
 
-/* ── T6: Modulos A + D - Mauricio Onicham & Fredy De la Cruz ────────────────
+/* ── T6: Modulos A + D ────────────────
    Verifica persistencia y consistencia en disco: cierre formal del descriptor
    (forzando iupdate en kernel) y verificacion de punteros tras reapertura. */
 static int
 test_t6_persistence(void)
 {
-    printf("\n[T6] MODULOS A + D (Mauricio & Fredy): Persistencia en Disco Duro Virtual\n");
+    printf("\n[T6] MODULOS A + D : Persistencia en Disco Duro Virtual\n");
     printf("     Escenario: Escritura en doble indirecto, cierre formal y reapertura...\n");
     unlink(TEST_FILE);
 
@@ -447,7 +447,7 @@ test_t6_persistence(void)
 static int
 test_t7_limits_comparison(void)
 {
-    printf("\n[T7] MODULOS B + D (Sebastian & Fredy): Validacion Arquitectonica y stat()\n");
+    printf("\n[T7] MODULOS B + D : Validacion Arquitectonica y stat()\n");
     printf("     Escenario: Creacion de archivo de %d bloques y medicion con stat()...\n", T7_BLOCKS);
     unlink(TEST_FILE);
 
@@ -487,7 +487,7 @@ test_t7_limits_comparison(void)
            (int)st.size, st.type, st.ino);
 
     printf("\n     =========================================================\n");
-    printf("     TABLA COMPARATIVA ARQUITECTONICA: xv6 BASE vs EQUIPO 2026\n");
+    printf("     TABLA COMPARATIVA ARQUITECTONICA: xv6 BASE vs EQUIPO\n");
     printf("     =========================================================\n");
     printf("     Parametro              xv6 Base            xv6 Modificado\n");
     printf("     ---------------------------------------------------------\n");
