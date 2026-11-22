@@ -132,6 +132,7 @@ mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 
 UPROGS=\
 	$U/_t2_bmap\
+	$U/_t5_free\
 	$U/_cat\
 	$U/_echo\
 	$U/_forktest\
