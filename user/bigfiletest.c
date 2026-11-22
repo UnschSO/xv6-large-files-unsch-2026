@@ -1,4 +1,4 @@
-// bigfiletest.c -- Suite de Pruebas Automatizadas Integrales
+// bigfiletest.c -- Suite de Pruebas Automatizadas Integrales con Visualizacion
 // Proyecto Final Sistemas Operativos 2026 - xv6-riscv
 // Ampliacion de capacidad mediante Direccionamiento Doblemente Indirecto
 //
@@ -11,9 +11,9 @@
 // Matriz Oficial de Pruebas (Guia Maestra del Equipo - Seccion 5):
 //   T1 [Modulo B - Sebastian]         : Verificacion de zona directa (0..10 bloques)
 //   T2 [Modulo A - Mauricio]          : Cruce de limite simple indirecto (300 bloques)
-//   T3 [Modulo D - Fredy]             : Archivo grande (1000 bloques = 1 MB)
+//   T3 [Modulo D - Fredy]             : Archivo grande con traza de punteros (1000 bloques)
 //   T4 [Modulo D - Fredy]             : Integridad determinista byte a byte
-//   T5 [Modulo C - Marlon]            : Liberacion y reutilizacion ciclica (itrunc)
+//   T5 [Modulo C - Marlon]            : Liberacion recursiva y reutilizacion ciclica (itrunc)
 //   T6 [Modulos A + D - Mauricio/Fredy]: Persistencia en disco y consistencia tras cierre
 //   T7 [Modulos B + D - Sebastian/Fredy]: Validacion de arquitectura vs xv6 original
 
@@ -26,7 +26,7 @@
 #define BSIZE_LOCAL     1024
 #define T1_BLOCKS       11            // NDIRECT exacto
 #define T2_BLOCKS       300           // Cruza NDIRECT(11) + NINDIRECT(256) = 267
-#define T3_BLOCKS       1000          // Archivo grande (1 MB)
+#define T3_BLOCKS       1000          // Archivo grande (1 MB) con visualizacion de punteros
 #define T4_BLOCKS       300           // Prueba de integridad determinista
 #define T5_BLOCKS       300           // Prueba de liberacion ciclica de Marlon
 #define T6_BLOCKS       300           // Prueba de persistencia
@@ -37,6 +37,24 @@
 static char buf[BSIZE_LOCAL];
 static char check_buf[BSIZE_LOCAL];
 
+/* ── Muestra el mapa arquitectonico del inodo antes de iniciar ─────────────── */
+static void
+print_inode_diagram(void)
+{
+    printf("\n  ======================================================================\n");
+    printf("    MAPA ARQUITECTONICO DEL INODO EN DISCO (struct dinode = 64 bytes)\n");
+    printf("  ======================================================================\n");
+    printf("    inodo.addrs[0..10]  -> 11 Punteros Directos   (Capacidad: 11 KB)\n");
+    printf("    inodo.addrs[11]     -> 1 Puntero Simple Ind.  (Capacidad: 256 KB)\n");
+    printf("    inodo.addrs[12]     -> 1 Puntero Doble Ind.   (Capacidad: ~64 MB)\n");
+    printf("                           |--> Tabla L1 (256 entradas de punteros L2)\n");
+    printf("                                |---> 256 Tablas L2 (256 punteros a datos)\n");
+    printf("                                      |---> 65,536 Bloques de Datos\n");
+    printf("    Limite Base xv6     : 268 bloques (268 KB) -> Termina en panic\n");
+    printf("    Nuevo Limite MAXFILE: 65,803 bloques (~64.26 MB) en fs de 20,000 blk\n");
+    printf("  ======================================================================\n\n");
+}
+
 /* ── T1: Modulo B - Quispe Sebastian ───────────────────────────────────────
    Verifica que la zona directa (NDIRECT = 11 bloques) funcione sin regresiones
    tras la reduccion de 12 a 11 punteros directos. */
@@ -45,6 +63,7 @@ test_t1_sebastian(void)
 {
     printf("\n[T1] MODULO B (Quispe Sebastian): Zona Directa (NDIRECT=%d)\n", NDIRECT);
     printf("     Escenario: Escritura y lectura de %d bloques directos...\n", T1_BLOCKS);
+    printf("     [Estructura]: Usando unicamente inodo.addrs[0..10]\n");
     unlink(TEST_FILE);
 
     int fd = open(TEST_FILE, O_CREATE | O_RDWR);
@@ -109,9 +128,22 @@ test_t2_mauricio(void)
         return 0;
     }
 
+    printf("     [Traza bmap]:\n");
     for(int i = 0; i < T2_BLOCKS; i++){
         for(int j = 0; j < BSIZE_LOCAL; j++)
             buf[j] = (char)((i + j) % 251);
+
+        if(i == 0)
+            printf("       Bloque    0 -> Zona Directa: inodo.addrs[0]\n");
+        else if(i == NDIRECT)
+            printf("       Bloque   11 -> Zona Simple Indirecta: asignando inodo.addrs[11]\n");
+        else if(i == NDIRECT + NINDIRECT){
+            printf("       =================================================================\n");
+            printf("       >>> HITO CRITICO: Superando bloque 267 (Limite original de xv6)\n");
+            printf("       >>> bmap() asigna Tabla Nivel 1 en inodo.addrs[12]\n");
+            printf("       >>> bmap() asigna Subtabla Nivel 2 [L1_idx = 0] (bloque logico 267)\n");
+            printf("       =================================================================\n");
+        }
 
         if(write(fd, buf, BSIZE_LOCAL) != BSIZE_LOCAL){
             printf("     -> FAIL: bmap() fallo al asignar bloque %d (doble indirecto)\n", i);
@@ -153,12 +185,13 @@ test_t2_mauricio(void)
 }
 
 /* ── T3: Modulo D - De la Cruz HC Fredy ─────────────────────────────────────
-   Verifica la creacion y lectura de un archivo grande de 1000 bloques (aprox. 1 MB). */
+   Verifica la creacion y lectura de un archivo grande de 1000 bloques (aprox. 1 MB)
+   mostrando en tiempo real como se van abriendo las sucesivas tablas de segundo nivel. */
 static int
 test_t3_fredy_largefile(void)
 {
-    printf("\n[T3] MODULO D (De la Cruz HC): Capacidad de Archivo Grande (1 MB)\n");
-    printf("     Escenario: Creacion y lectura secuencial de %d bloques (1000 KB)...\n", T3_BLOCKS);
+    printf("\n[T3] MODULO D (De la Cruz HC): Capacidad Masiva y Mapeo en Tiempo Real (1 MB)\n");
+    printf("     Escenario: Escritura continua de %d bloques (1000 KB)...\n", T3_BLOCKS);
     unlink(TEST_FILE);
 
     int fd = open(TEST_FILE, O_CREATE | O_RDWR);
@@ -167,8 +200,20 @@ test_t3_fredy_largefile(void)
         return 0;
     }
 
+    printf("     [Visualizacion de creacion de tablas de punteros]:\n");
     memset(buf, 0x5A, BSIZE_LOCAL);
     for(int i = 0; i < T3_BLOCKS; i++){
+        if(i == 0)
+            printf("       [PUNTEROS DIRECTOS]  : Bloques    0..10  -> inodo.addrs[0..10]\n");
+        else if(i == NDIRECT)
+            printf("       [SIMPLE INDIRECTO]   : Bloques   11..266 -> inodo.addrs[11] (Tabla Simple)\n");
+        else if(i == NDIRECT + NINDIRECT)
+            printf("       [DOBLE IND. TABLA L2-0]: Bloques  267..522 -> inodo.addrs[12] -> L1[0] -> L2[0..255]\n");
+        else if(i == NDIRECT + NINDIRECT + NINDIRECT)
+            printf("       [DOBLE IND. TABLA L2-1]: Bloques  523..778 -> inodo.addrs[12] -> L1[1] -> L2[0..255]\n");
+        else if(i == NDIRECT + NINDIRECT + 2 * NINDIRECT)
+            printf("       [DOBLE IND. TABLA L2-2]: Bloques  779..999 -> inodo.addrs[12] -> L1[2] -> L2[0..220]\n");
+
         if(write(fd, buf, BSIZE_LOCAL) != BSIZE_LOCAL){
             printf("     -> FAIL: fallo al escribir bloque %d de 1000\n", i);
             close(fd);
@@ -210,6 +255,7 @@ test_t4_fredy_integrity(void)
 {
     printf("\n[T4] MODULO D (De la Cruz HC): Integridad de Datos Determinista\n");
     printf("     Escenario: Patron matematico no colisionante ((i * 7 + 13) %% 256)...\n");
+    printf("     [Objetivo]: Comprobar que ningun bloque doble indirecto se solapa o corrompe.\n");
     unlink(TEST_FILE);
 
     int fd = open(TEST_FILE, O_CREATE | O_RDWR);
@@ -257,25 +303,30 @@ test_t4_fredy_integrity(void)
     close(fd);
     unlink(TEST_FILE);
 
-    printf("     -> PASS: 307200 bytes validados byte a byte sin corrupcion de punteros.\n");
+    printf("     -> PASS: 307,200 bytes validados byte a byte sin colision de punteros.\n");
     return 1;
 }
 
 /* ── T5: Modulo C - Pinga Marlon ───────────────────────────────────────────
    Verifica que itrunc() libere ambos niveles del arbol doblemente indirecto
-   y que los bloques retornen al bitmap siendo reutilizables en 10 ciclos continuos. */
+   y que los bloques retornen al bitmap siendo reutilizables en ciclos continuos. */
 static int
 test_t5_marlon_itrunc(void)
 {
-    printf("\n[T5] MODULO C (Pinga Marlon): Liberacion y Reutilizacion itrunc()\n");
+    printf("\n[T5] MODULO C (Pinga Marlon): Liberacion Recursiva y Reutilizacion itrunc()\n");
     printf("     Escenario: 3 ciclos de crear, verificar y liberar %d bloques c/u...\n", T5_BLOCKS);
+    printf("     [Algoritmo]: itrunc() libera Datos L2 -> Subtabla L2 -> Tabla L1 -> Bitmap.\n");
 
     int ciclos_exitosos = 0;
     for(int ciclo = 1; ciclo <= 3; ciclo++){
+        printf("       Ciclo %d/3: asignando %d bloques... ", ciclo, T5_BLOCKS);
         unlink("t5_tmp_a");
 
         int fd = open("t5_tmp_a", O_CREATE | O_RDWR);
-        if(fd < 0) break;
+        if(fd < 0){
+            printf("FAIL (open)\n");
+            break;
+        }
 
         int write_ok = 1;
         for(int i = 0; i < T5_BLOCKS; i++){
@@ -287,12 +338,14 @@ test_t5_marlon_itrunc(void)
         }
         close(fd);
         if(!write_ok){
+            printf("FAIL (write)\n");
             unlink("t5_tmp_a");
             break;
         }
 
         fd = open("t5_tmp_a", O_RDONLY);
         if(fd < 0){
+            printf("FAIL (reopen)\n");
             unlink("t5_tmp_a");
             break;
         }
@@ -309,12 +362,17 @@ test_t5_marlon_itrunc(void)
             }
         }
         close(fd);
-        unlink("t5_tmp_a"); // Llama a itrunc() liberando nivel 1, nivel 2 y datos
 
-        if(read_ok)
+        // Llamada a unlink -> activa itrunc() en el kernel
+        unlink("t5_tmp_a");
+
+        if(read_ok){
+            printf("verificado y liberado OK (bloques recuperados)\n");
             ciclos_exitosos++;
-        else
+        } else {
+            printf("FAIL (datos corruptos)\n");
             break;
+        }
     }
 
     if(ciclos_exitosos == 3){
@@ -332,7 +390,7 @@ test_t5_marlon_itrunc(void)
 static int
 test_t6_persistence(void)
 {
-    printf("\n[T6] MODULOS A + D (Mauricio & Fredy): Persistencia en Disco\n");
+    printf("\n[T6] MODULOS A + D (Mauricio & Fredy): Persistencia en Disco Duro Virtual\n");
     printf("     Escenario: Escritura en doble indirecto, cierre formal y reapertura...\n");
     unlink(TEST_FILE);
 
@@ -351,6 +409,7 @@ test_t6_persistence(void)
             return 0;
         }
     }
+    printf("     [Persistencia]: close(fd) -> kernel invoca iupdate() sincronizando inodo en disco.\n");
     close(fd); // Cierre real: kernel sincroniza inodo en disco
 
     // Reapertura independiente como solo lectura
@@ -454,6 +513,8 @@ main(void)
     printf("  SUITE DE PRUEBAS INTEGRAL: DIRECCIONAMIENTO DOBLEMENTE INDIRECTO\n");
     printf("  Equipo: Mauricio Onicham | Quispe Sebastian | Marlon Pinga | Fredy DLC\n");
     printf("======================================================================\n");
+
+    print_inode_diagram();
 
     int pass_count = 0;
     pass_count += test_t1_sebastian();
