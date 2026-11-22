@@ -254,7 +254,7 @@ main(void)
 {
     printf("\n");
     printf("============================================================\n");
-    printf("  SUITE MODULO D -- De la Cruz HC (fredydlc)\n");
+    printf("  SUITE MODULO D\n");
     printf("  xv6-riscv: Direccionamiento Doblemente Indirecto\n");
     printf("  NDIRECT=%d  NINDIRECT=%d  MAXFILE=%d bloques (~%d MB)\n",
            (int)NDIRECT, (int)NINDIRECT, (int)MAXFILE, (int)(MAXFILE / 1024));
