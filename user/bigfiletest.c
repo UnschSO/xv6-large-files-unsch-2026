@@ -441,7 +441,7 @@ test_t6_persistence(void)
     return 1;
 }
 
-/* ── T7: Modulos B + D - Quispe Sebastian & Fredy De la Cruz ────────────────
+/* ── T7: Modulos B + D - Sebastian & Fredy ────────────────
    Verifica metadatos del inodo mediante llamada al sistema stat() y presenta
    la comparativa arquitectonica frente al diseno base de xv6. */
 static int
@@ -509,9 +509,9 @@ main(void)
 {
     printf("\n");
     printf("======================================================================\n");
-    printf("  PROYECTO FINAL SISTEMAS OPERATIVOS 2026 - UNSCH\n");
+    printf("  PROYECTO FINAL SISTEMAS OPERATIVOS\n");
     printf("  SUITE DE PRUEBAS INTEGRAL: DIRECCIONAMIENTO DOBLEMENTE INDIRECTO\n");
-    printf("  Equipo: Mauricio Onicham | Quispe Sebastian | Marlon Pinga | Fredy DLC\n");
+    printf("  Equipo: Mauricio | Sebastian | Marlon | Fredy\n");
     printf("======================================================================\n");
 
     print_inode_diagram();
